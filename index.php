@@ -71,7 +71,8 @@ $app->get('/areas/:num1/:num2', 'getAreas');
 // API v2
 $app->get('/v2/locations/movements/:num1/:num2(/)(range_type/:rangetype/?)(/)(gender/:gender/?)', 'getMovementLocationsV2');
 $app->get('/v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getLocationsV2');
-$app->get('/v2/persons(/)(place/:place/?)(/)(relation/:relation/?)(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getPersonsV2');
+$app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getPersonsV2');
+//$app->get('/v2/persons(/)(place/:place/?)(/)(relation/:relation/?)(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getPersonsV2');
 
 
 
@@ -926,98 +927,6 @@ function getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = n
 	echo json_encode_is($data, array('sql' => $sql));
 }
 
-function _getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $relationType = null, $gender = null, $name = null) {
-	$db = getConnection();
-
-	$relationType = is_null($relationType) || $relationType == "" || $relationType == "both" ? "both" : $relationType;
-
-	switch ($relationType) {
-		case 'birth':
-			$connectionCriteria = " places.id = persons.birthplace ";
-			break;
-		case 'death':
-			$connectionCriteria = " places.id = persons.deathplace ";
-			break;
-		case 'both':
-			$connectionCriteria = " places.id = persons.birthplace OR places.id = persons.deathplace ";
-			break;
-		default:
-			$connectionCriteria = " places.id = persons.birthplace OR places.id = persons.deathplace ";
-	}
-
-	if (!is_null($gender) && $gender != '') {
-		if ($gender == 'male') {
-			$genderCriteria = " AND persons.gender = 0";
-		}
-		else if ($gender == 'female') {
-			$genderCriteria = " AND persons.gender = 1";
-		}
-		else {
-			$genderCriteria = "";
-		}
-	}
-	else {
-		$genderCriteria = "";
-	}
-
-	if (!is_null($name) && $name != '') {
-		$nameCriteria = " AND (LOWER(persons.surname) LIKE '%".
-			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
-		"%' OR LOWER(persons.surname_literal) LIKE '%".
-			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
-		"%' OR LOWER(persons.firstname) LIKE '%".
-			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
-		"%')";
-	}
-	else {
-		$nameCriteria = "";
-	}
-
-
-	if (!is_null($yearFrom) && $yearFrom != "" && !is_null($yearTo) && $yearTo != "") {
-		if (!is_null($rangeType) && $rangeType != "") {
-			if ($rangeType == 'birth') {
-				$rangeCriteria = " AND persons.birth_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year";
-			}
-			else if ($rangeType == 'death') {
-				$rangeCriteria = " AND persons.death_year >= ".$yearFrom." AND persons.death_year <= ".$yearTo." AND persons.birth_year < persons.death_year";
-			}
-			else {
-				$rangeCriteria = " AND persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year";
-			}
-		}
-		else {
-			$rangeCriteria = " AND persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year";
-		}
-	}
-	else {
-		$rangeCriteria = "";
-	}
-
-	$sql = "SELECT DISTINCT places.id, places.name, places.area, places.lat, places.lng, Count(persons.id) AS c FROM places INNER JOIN persons ON".
-		$connectionCriteria.
-		"WHERE places.lat IS NOT NULL AND places.lng IS NOT NULL".
-//		"WHERE persons.ll_id LIKE 'R%' AND places.lat IS NOT NULL AND places.lng IS NOT NULL".
-		(
-			!is_null($yearFrom) && $yearFrom != "" && !is_null($yearTo) && $yearTo != "" ? 
-			" AND persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year" : ""
-		).
-		$rangeCriteria.
-		$genderCriteria.
-		$nameCriteria.
-		" GROUP BY places.id"
-	;
-
-
-	$res = $db->query($sql);
-	
-	$data = array();
-	while ($row = $res->fetch_assoc()) {
-		array_push($data, $row);
-	}
-	echo json_encode_is($data, array('sql' => $sql));
-}
-
 function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $relationType = null, $gender = null, $name = null) {
 	$db = getConnection();
 
@@ -1088,11 +997,6 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 
 	$sql = "SELECT DISTINCT places.id, places.name, places.area, places.lat, places.lng, Count(persons.id) AS c FROM places INNER JOIN personplaces ON personplaces.place = places.id INNER JOIN persons ON personplaces.person = persons.id".
 		" WHERE places.lat IS NOT NULL AND places.lng IS NOT NULL".
-//		"WHERE persons.ll_id LIKE 'R%' AND places.lat IS NOT NULL AND places.lng IS NOT NULL".
-		(
-			!is_null($yearFrom) && $yearFrom != "" && !is_null($yearTo) && $yearTo != "" ? 
-			" AND persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year" : ""
-		).
 		$relationCriteria.
 		$rangeCriteria.
 		$genderCriteria.
@@ -1109,8 +1013,107 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 	echo json_encode_is($data, array('sql' => $sql));
 }
 
+function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $name = null) {
+	$db = getConnection();
+/*
+	$relationType = is_null($relationType) || $relationType == "" || $relationType == "both" ? "both" : $relationType;
 
-function getPersonsV2($place = null, $relationType = null, $yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $name = null) {
+	switch ($relationType) {
+		case 'birth':
+			$relationCriteria = "personplaces.relation = 'b'";
+			break;
+		case 'death':
+			$relationCriteria = "personplaces.relation = 'd'	";
+			break;
+		case 'both':
+			$relationCriteria = " ";
+			break;
+		default:
+			$relationCriteria = " ";
+	}
+*/
+	$criteras = array();
+	if (!is_null($gender) && $gender != '') {
+		if ($gender == 'male') {
+			array_push($criteras, "persons.gender = 0");
+		}
+		else if ($gender == 'female') {
+			array_push($criteras, "persons.gender = 1");
+		}
+	}
+
+	if (!is_null($name) && $name != '') {
+		array_push($criteras, "(LOWER(persons.surname) LIKE '%".
+			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
+		"%' OR LOWER(persons.surname_literal) LIKE '%".
+			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
+		"%' OR LOWER(persons.firstname) LIKE '%".
+			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
+		"%')");
+	}
+
+
+	if (!is_null($yearFrom) && $yearFrom != "" && !is_null($yearTo) && $yearTo != "") {
+		if (!is_null($rangeType) && $rangeType != "") {
+			if ($rangeType == 'birth') {
+				array_push($criteras, "persons.birth_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
+			}
+			else if ($rangeType == 'death') {
+				array_push($criteras, "persons.death_year >= ".$yearFrom." AND persons.death_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
+			}
+			else {
+				array_push($criteras, "persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
+			}
+		}
+		else {
+			array_push($criteras, "persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
+		}
+	}
+
+
+	$sql = "SELECT persons.id, ".
+		"persons.ll_id, ".
+		"persons.ll_idnum, ".
+		"persons.surname, ".
+		"persons.surname_literal, ".
+		"persons.firstname, ".
+		"persons.gender, ".
+		"persons.birthplace, ".
+		"persons.deathplace, ".
+		"persons.birth_day, ".
+		"persons.birth_month, ".
+		"persons.birth_year, persons.death_day, ".
+		"persons.death_month, ".
+		"persons.death_year, ".
+		"b_p.name birthplacename, ".
+		"b_p.area birthplacearea, ".
+		"b_p.lat birthplacelat, ".
+		"b_p.lng birthplacelng, ".
+		"d_p.name deathplacename, ".
+		"d_p.area deathplacearea, ".
+		"d_p.lat deathplacelat, ".
+		"d_p.lng deathplacelng FROM persons INNER JOIN places b_p ON persons.birthplace = b_p.id INNER JOIN places d_p ON persons.deathplace = d_p.id ".
+/*
+		(
+			!is_null($yearFrom) && $yearFrom != "" && !is_null($yearTo) && $yearTo != "" ? 
+			" AND persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year" : ""
+		).
+*/
+		"WHERE ".implode(' AND ', $criteras)
+	;
+
+	echo $sql;
+
+	$res = $db->query($sql);
+	
+	$data = array();
+	while ($row = $res->fetch_assoc()) {
+		array_push($data, $row);
+	}
+	echo json_encode_is($data, array('sql' => $sql));
+}
+
+function _getPersonsV2($place = null, $relationType = null, $yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $name = null) {
 	$db = getConnection();
 
 	$whereCriterias = array();
@@ -1177,7 +1180,28 @@ function getPersonsV2($place = null, $relationType = null, $yearFrom = null, $ye
 		}
 	}
 
-	$sql = "SELECT persons.id, persons.ll_id, persons.ll_idnum, persons.surname, persons.surname_literal, persons.firstname, persons.gender, persons.birthplace, persons.deathplace, persons.birth_day, persons.birth_month, persons.birth_year, persons.death_day, persons.death_month, persons.death_year, b_p.name birthplacename, b_p.area birthplacearea, b_p.lat birthplacelat, b_p.lng birthplacelng, d_p.name deathplacename, d_p.area deathplacearea, d_p.lat deathplacelat, d_p.lng deathplacelng FROM persons INNER JOIN places b_p ON persons.birthplace = b_p.id INNER JOIN places d_p ON persons.deathplace = d_p.id".
+	$sql = "SELECT persons.id, ".
+		"persons.ll_id, ".
+		"persons.ll_idnum, ".
+		"persons.surname, ".
+		"persons.surname_literal, ".
+		"persons.firstname, ".
+		"persons.gender, ".
+		"persons.birthplace, ".
+		"persons.deathplace, ".
+		"persons.birth_day, ".
+		"persons.birth_month, ".
+		"persons.birth_year, persons.death_day, ".
+		"persons.death_month, ".
+		"persons.death_year, ".
+		"b_p.name birthplacename, ".
+		"b_p.area birthplacearea, ".
+		"b_p.lat birthplacelat, ".
+		"b_p.lng birthplacelng, ".
+		"d_p.name deathplacename, ".
+		"d_p.area deathplacearea, ".
+		"d_p.lat deathplacelat, ".
+		"d_p.lng deathplacelng FROM persons INNER JOIN places b_p ON persons.birthplace = b_p.id INNER JOIN places d_p ON persons.deathplace = d_p.id".
 		(count($whereCriterias) > 0 ? " WHERE ".implode(" AND ", $whereCriterias) : "")
 	;
 

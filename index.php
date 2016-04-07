@@ -40,7 +40,6 @@ $app->add(new \Slim\Middleware\HttpBasicAuthentication([
 ]));
 
 $app->get('/', 'frontPage');
-$app->get('/proof', 'proof');
 
 $app->get('/person/:id', 'getPerson');
 
@@ -96,10 +95,6 @@ function getConnection() {
 	$db->set_charset('utf8');
 
 	return $db;
-}
-
-function proof() {
-	echo 'Proof of concept';
 }
 
 function processItem(&$item, $key) {
@@ -575,11 +570,18 @@ function getDuplicatePlaces($num1 = null, $num2 = null) {
 
 	$db = getConnection();
 
+    $sqlModesRes = $db->query('SELECT @@sql_mode');
+    $sqlModes = $sqlModesRes->fetch_assoc();
+
+    $sqlModesArray = explode(',', $sqlModes['@@sql_mode']);
+    $sqlModesArray = array_diff($sqlModesArray, array('ONLY_FULL_GROUP_BY'));
+
+    $db->query("SET sql_mode = '".implode(',', $sqlModesArray)."'");
+
 	$res = $db->query($sql);
 	
 	$rowCountRes = $db->query('SELECT FOUND_ROWS() total');
 	$rowCount = $rowCountRes->fetch_assoc();
-
 	$data = array();
 	while ($row = $res->fetch_assoc()) {
 		$places = array();

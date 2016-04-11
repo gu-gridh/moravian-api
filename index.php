@@ -32,13 +32,13 @@ class DBAuthenticator implements AuthenticatorInterface {
 }
 
 $app = new \Slim\Slim();
-/*
+
 $app->add(new \Slim\Middleware\HttpBasicAuthentication([
 	"path" => '/admin',
 	"secure" => false,
 	"authenticator" => new DBAuthenticator()
 ]));
-*/
+
 $app->get('/', 'frontPage');
 
 $app->get('/person/:id', 'getPerson');

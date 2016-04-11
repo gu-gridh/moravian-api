@@ -32,13 +32,13 @@ class DBAuthenticator implements AuthenticatorInterface {
 }
 
 $app = new \Slim\Slim();
-
+/*
 $app->add(new \Slim\Middleware\HttpBasicAuthentication([
 	"path" => '/admin',
 	"secure" => false,
 	"authenticator" => new DBAuthenticator()
 ]));
-
+*/
 $app->get('/', 'frontPage');
 
 $app->get('/person/:id', 'getPerson');
@@ -71,7 +71,7 @@ $app->get('/areas/:num1/:num2', 'getAreas');
 // API v2
 $app->get('/v2/locations/movements/:num1/:num2(/)(range_type/:rangetype/?)(/)(gender/:gender/?)', 'getMovementLocationsV2');
 $app->get('/v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getLocationsV2');
-$app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getPersonsV2');
+$app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(name/:name/?)(/)(page/:page/?)', 'getPersonsV2');
 //$app->get('/v2/persons(/)(place/:place/?)(/)(relation/:relation/?)(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getPersonsV2');
 
 
@@ -1013,25 +1013,11 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 	echo json_encode_is($data, array('sql' => $sql));
 }
 
-function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $name = null) {
-	$db = getConnection();
-/*
-	$relationType = is_null($relationType) || $relationType == "" || $relationType == "both" ? "both" : $relationType;
+function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $name = null, $page = 0) {
+	$pageSize = 40;
 
-	switch ($relationType) {
-		case 'birth':
-			$relationCriteria = "personplaces.relation = 'b'";
-			break;
-		case 'death':
-			$relationCriteria = "personplaces.relation = 'd'	";
-			break;
-		case 'both':
-			$relationCriteria = " ";
-			break;
-		default:
-			$relationCriteria = " ";
-	}
-*/
+	$db = getConnection();
+
 	$criteras = array();
 	if (!is_null($gender) && $gender != '') {
 		if ($gender == 'male') {
@@ -1071,7 +1057,7 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 	}
 
 
-	$sql = "SELECT persons.id, ".
+	$sql = "SELECT SQL_CALC_FOUND_ROWS persons.id, ".
 		"persons.ll_id, ".
 		"persons.ll_idnum, ".
 		"persons.surname, ".
@@ -1092,17 +1078,10 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 		"d_p.name deathplacename, ".
 		"d_p.area deathplacearea, ".
 		"d_p.lat deathplacelat, ".
-		"d_p.lng deathplacelng FROM persons INNER JOIN places b_p ON persons.birthplace = b_p.id INNER JOIN places d_p ON persons.deathplace = d_p.id ".
-/*
-		(
-			!is_null($yearFrom) && $yearFrom != "" && !is_null($yearTo) && $yearTo != "" ? 
-			" AND persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year" : ""
-		).
-*/
-		"WHERE ".implode(' AND ', $criteras)
+		"d_p.lng deathplacelng FROM persons LEFT JOIN places b_p ON persons.birthplace = b_p.id LEFT JOIN places d_p ON persons.deathplace = d_p.id ".
+		"WHERE ".implode(' AND ', $criteras)." ".
+		"LIMIT ".$page.", ".$pageSize
 	;
-
-	echo $sql;
 
 	$res = $db->query($sql);
 	
@@ -1110,119 +1089,15 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 	while ($row = $res->fetch_assoc()) {
 		array_push($data, $row);
 	}
-	echo json_encode_is($data, array('sql' => $sql));
+
+	$res = $db->query('SELECT FOUND_ROWS() total');
+	$row = $res->fetch_assoc();
+
+	echo json_encode_is($data, array(
+		'sql' => $sql,
+		'page' => $page+$pageSize,
+		'total' => $row['total']
+	));
 }
-
-function _getPersonsV2($place = null, $relationType = null, $yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $name = null) {
-	$db = getConnection();
-
-	$whereCriterias = array();
-
-//	array_push($whereCriterias, "persons.ll_id LIKE 'R%'");
-
-	if (!is_null($place) && $place != "") {
-		$relationType = is_null($relationType) || $relationType == "" || $relationType == "both" ? "both" : $relationType;
-
-		switch ($relationType) {
-			case 'birth':
-				$placeCriteria = " persons.birthplace = ".$place;
-				break;
-			case 'death':
-				$placeCriteria = " persons.deathplace = ".$place;
-				break;
-			case 'both':
-				$placeCriteria = " (persons.birthplace = ".$place." OR persons.deathplace = ".$place.")";
-				break;
-			default:
-				$placeCriteria = " (persons.birthplace = ".$place." OR persons.deathplace = ".$place.")";
-		}
-
-		array_push($whereCriterias, $placeCriteria);
-	}
-
-	if (!is_null($yearFrom) && $yearFrom != "" && !is_null($yearTo) && $yearTo != "") {
-		array_push($whereCriterias, "persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
-	}
-
-	if (!is_null($gender) && $gender != '') {
-		if ($gender == 'male') {
-			array_push($whereCriterias, "persons.gender = 0");
-		}
-		else if ($gender == 'female') {
-			array_push($whereCriterias, "persons.gender = 1");
-		}
-	}
-
-	if (!is_null($name) && $name != '') {
-		array_push($whereCriterias, "(LOWER(persons.surname) LIKE '%".
-			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
-		"%' OR LOWER(persons.surname_literal) LIKE '%".
-			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
-		"%' OR LOWER(persons.firstname) LIKE '%".
-			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
-		"%')");
-	}
-
-	if (!is_null($yearFrom) && $yearFrom != "" && !is_null($yearTo) && $yearTo != "") {
-		if (!is_null($rangeType) && $rangeType != "") {
-			if ($rangeType == 'birth') {
-				array_push($whereCriterias, "persons.birth_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
-			}
-			else if ($rangeType == 'death') {
-				array_push($whereCriterias, "persons.death_year >= ".$yearFrom." AND persons.death_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
-			}
-			else {
-				array_push($whereCriterias, "persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
-			}
-		}
-		else {
-			array_push($whereCriterias, "persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
-		}
-	}
-
-	$sql = "SELECT persons.id, ".
-		"persons.ll_id, ".
-		"persons.ll_idnum, ".
-		"persons.surname, ".
-		"persons.surname_literal, ".
-		"persons.firstname, ".
-		"persons.gender, ".
-		"persons.birthplace, ".
-		"persons.deathplace, ".
-		"persons.birth_day, ".
-		"persons.birth_month, ".
-		"persons.birth_year, persons.death_day, ".
-		"persons.death_month, ".
-		"persons.death_year, ".
-		"b_p.name birthplacename, ".
-		"b_p.area birthplacearea, ".
-		"b_p.lat birthplacelat, ".
-		"b_p.lng birthplacelng, ".
-		"d_p.name deathplacename, ".
-		"d_p.area deathplacearea, ".
-		"d_p.lat deathplacelat, ".
-		"d_p.lng deathplacelng FROM persons INNER JOIN places b_p ON persons.birthplace = b_p.id INNER JOIN places d_p ON persons.deathplace = d_p.id".
-		(count($whereCriterias) > 0 ? " WHERE ".implode(" AND ", $whereCriterias) : "")
-	;
-
-	$res = $db->query($sql);
-	
-	$data = array();
-	while ($row = $res->fetch_assoc()) {
-		array_push($data, personObj($row));
-	}
-
-	$metadata = null;
-	if (!is_null($place) && $place != "") {
-		$placeRes = $db->query('SELECT name, area FROM places WHERE id = '.$place);
-		$placeRow = $placeRes->fetch_assoc();
-		$metadata = $placeRow;
-	}
-
-	$metadata['sql'] = $sql;
-
-	echo json_encode_is($data, $metadata);
-}
-
 
 ?>

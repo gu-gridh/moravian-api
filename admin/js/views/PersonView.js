@@ -29,7 +29,8 @@ define(function(require){
 				success: _.bind(function() {
 					this.render();
 					this.options.app.showMessage('Person entry saved.')
-				}, this)
+				}, this),
+				type: 'POST'
 			});
 		},
 

@@ -77,8 +77,8 @@ $app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(
 
 
 // Admin
-$app->put('/admin/person/:id', 'putPerson');
-$app->put('/admin/place/:id', 'putPlace');
+$app->post('/admin/person/:id', 'postPerson');
+$app->post('/admin/place/:id', 'postPlace');
 
 $app->post('/admin/places/combine/:id', 'combinePlaces');
 $app->post('/admin/persons/combine/:id', 'combinePersons');
@@ -736,7 +736,7 @@ function getGender($gender) {
 	}
 }
 
-function putPerson($id) {
+function postPerson($id) {
 	$app = \Slim\Slim::getInstance();
 	$request = $app->request();
 	$requestBody = $request->getBody();
@@ -767,7 +767,7 @@ function putPerson($id) {
 
 }
 
-function putPlace($id) {
+function postPlace($id) {
 	$app = \Slim\Slim::getInstance();
 	$request = $app->request();
 	$requestBody = $request->getBody();

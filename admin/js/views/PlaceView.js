@@ -34,7 +34,8 @@ define(function(require){
 				success: _.bind(function() {
 					this.render();
 					this.options.app.showMessage('Place entry saved.')
-				}, this)
+				}, this),
+				type: 'POST'
 			});
 		},
 

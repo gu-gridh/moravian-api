@@ -70,9 +70,9 @@ $app->get('/areas/:num1/:num2', 'getAreas');
 
 // API v2
 $app->get('/v2/locations/movements/:num1/:num2(/)(range_type/:rangetype/?)(/)(gender/:gender/?)', 'getMovementLocationsV2');
-$app->get('/v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)', 'getLocationsV2');
-$app->get('/v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(page/:page/?)', 'getPersonsPerYearV2');
-$app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(page/:page/?)', 'getPersonsV2');
+$app->get('/v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getLocationsV2');
+$app->get('/v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(/)(page/:page/?)', 'getPersonsPerYearV2');
+$app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(page/:page/?)(/)', 'getPersonsV2');
 //$app->get('/v2/persons(/)(place/:place/?)(/)(relation/:relation/?)(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getPersonsV2');
 
 
@@ -929,7 +929,7 @@ function getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = n
 }
 
 // v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)
-function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $relationType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null) {
+function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $relationType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null) {
 	$db = getConnection();
 
 	$relationType = is_null($relationType) || $relationType == "" || $relationType == "both" ? "both" : $relationType;
@@ -957,7 +957,6 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 		}
 	}
 
-
 	if (!is_null($name) && $name != '') {
 		array_push($criteras, "(LOWER(persons.surname) LIKE '%".
 			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
@@ -980,6 +979,10 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 		"%' OR LOWER(persons.surname_literal) LIKE '%".
 			mb_convert_case($surname, MB_CASE_LOWER, "UTF-8").
 		"%')");
+	}
+
+	if (!is_null($archive) && $archive != '') {
+		array_push($criteras, "persons.source = ".$archive);
 	}
 
 	$placeJoin = '';
@@ -1051,8 +1054,8 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 }
 
 // v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(page/:page/?)
-function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $page = 0) {
-	$pageSize = 200;
+function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null, $page = 0) {
+	$pageSize = 40;
 
 	$db = getConnection();
 
@@ -1088,6 +1091,10 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 		"%' OR LOWER(persons.surname_literal) LIKE '%".
 			mb_convert_case($surname, MB_CASE_LOWER, "UTF-8").
 		"%')");
+	}
+
+	if (!is_null($archive) && $archive != '') {
+		array_push($criteras, "persons.source = ".$archive);
 	}
 
 	if (!is_null($place) && $place != '') {
@@ -1212,7 +1219,7 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 }
 
 // v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(page/:page/?)
-function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $page = 0) {
+function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null) {
 	$db = getConnection();
 
 	$criteras = array();
@@ -1252,6 +1259,10 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 		"%' OR LOWER(persons.surname_literal) LIKE '%".
 			mb_convert_case($surname, MB_CASE_LOWER, "UTF-8").
 		"%')");
+	}
+
+	if (!is_null($archive) && $archive != '') {
+		array_push($criteras, "persons.source = ".$archive);
 	}
 
 	if (!is_null($place) && $place != '') {

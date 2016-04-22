@@ -864,6 +864,12 @@ function combinePersons($finalId) {
 		}
 	}
 
+	$finalPersonRes = $db->query('SELECT * FROM persons WHERE id = '.$finalId);
+	$finalPersonRow = $finalPersonRes->fetch_assoc();
+
+	$db->query("UPDATE personplaces  SET place = ".$finalPersonRow['birthplace']." WHERE person = ".$finalId." AND relation = 'b'");
+	$db->query("UPDATE personplaces  SET place = ".$finalPersonRow['deathplace']." WHERE person = ".$finalId." AND relation = 'd'");
+
 	echo json_encode_is(array(
 		'action' => 'combinePersons',
 		'status' => 'success'
@@ -981,11 +987,14 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 		"%')");
 	}
 
+	$placeJoin = '';
+
 	if (!is_null($archive) && $archive != '') {
-		array_push($criteras, "persons.source = ".$archive);
+		array_push($criteras, "documents.source = ".$archive);
+		$placeJoin .= "INNER JOIN persondocuments ON persondocuments.person = persons.id ".
+			"INNER JOIN documents ON persondocuments.document = documents.id ";
 	}
 
-	$placeJoin = '';
 	
 	if (!is_null($place) && $place != '') {
 		array_push($criteras, "(LOWER(rel_p.name) LIKE '%".
@@ -1059,6 +1068,8 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 
 	$db = getConnection();
 
+	$join = "LEFT JOIN places b_p ON persons.birthplace = b_p.id LEFT JOIN places d_p ON persons.deathplace = d_p.id ";
+
 	$criteras = array();
 	if (!is_null($gender) && $gender != '') {
 		if ($gender == 'male') {
@@ -1094,7 +1105,9 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 	}
 
 	if (!is_null($archive) && $archive != '') {
-		array_push($criteras, "persons.source = ".$archive);
+		array_push($criteras, "documents.source = ".$archive);
+		$join .= "INNER JOIN persondocuments ON persondocuments.person = persons.id ".
+			"INNER JOIN documents ON persondocuments.document = documents.id ";
 	}
 
 	if (!is_null($place) && $place != '') {
@@ -1175,17 +1188,18 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 	}
 
 	$sql = "SELECT SQL_CALC_FOUND_ROWS persons.id, ".
-		"persons.ll_id, ".
-		"persons.ll_idnum, ".
 		"persons.surname, ".
 		"persons.surname_literal, ".
+		"persons.former_surname surname_maiden, ".
 		"persons.firstname, ".
 		"persons.gender, ".
+		"persons.familystatus, ".
 		"persons.birthplace, ".
 		"persons.deathplace, ".
 		"persons.birth_day, ".
 		"persons.birth_month, ".
-		"persons.birth_year, persons.death_day, ".
+		"persons.birth_year, ".
+		"persons.death_day, ".
 		"persons.death_month, ".
 		"persons.death_year, ".
 		"b_p.name birthplacename, ".
@@ -1196,31 +1210,67 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 		"d_p.area deathplacearea, ".
 		"d_p.lat deathplacelat, ".
 		"d_p.lng deathplacelng " .
-		"FROM persons LEFT JOIN places b_p ON persons.birthplace = b_p.id LEFT JOIN places d_p ON persons.deathplace = d_p.id ".
+		"FROM persons ".
+		$join.
 		"WHERE ".implode(' AND ', $criteras)." ".
 		"LIMIT ".$page.", ".$pageSize
 	;
 
 	$res = $db->query($sql);
 	
+	$totalRes = $db->query('SELECT FOUND_ROWS() total');
+	$totalRow = $totalRes->fetch_assoc();
+
 	$data = array();
 	while ($row = $res->fetch_assoc()) {
+
+		$docSql = "SELECT documents.id, ".
+			"documents.ll_id, ".
+			"documents.ll_idnum, ".
+			"documents.surname, ".
+			"documents.surname_literal, ".
+			"documents.firstname, ".
+			"documents.gender, ".
+			"documents.birthplace, ".
+			"documents.deathplace, ".
+			"documents.ll_birth, ".
+			"documents.birth_day, ".
+			"documents.birth_month, ".
+			"documents.birth_year, ".
+			"documents.ll_death, ".
+			"documents.death_day, ".
+			"documents.death_month, ".
+			"documents.death_year, ".
+			"documents.reference, ".
+			"documents.ownhand, ".
+			"documents.comment, ".
+			"documents.source archive ".
+			"FROM documents INNER JOIN persondocuments ON persondocuments.document = documents.id ".
+			"WHERE persondocuments.person = ".$row['id']
+		;
+
+		$docRes = $db->query($docSql);
+		$row['documents'] = array();
+
+		while ($docRow = $docRes->fetch_assoc()) {
+			array_push($row['documents'], $docRow);
+		}
+
 		array_push($data, $row);
 	}
-
-	$res = $db->query('SELECT FOUND_ROWS() total');
-	$row = $res->fetch_assoc();
 
 	echo json_encode_is($data, array(
 		'sql' => $sql,
 		'page' => $page+$pageSize,
-		'total' => $row['total']
+		'total' => $totalRow['total']
 	));
 }
 
 // v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(page/:page/?)
 function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null) {
 	$db = getConnection();
+
+	$join = "LEFT JOIN places b_p ON persons.birthplace = b_p.id LEFT JOIN places d_p ON persons.deathplace = d_p.id ";
 
 	$criteras = array();
 	array_push($criteras, "persons.birth_year > 1500");
@@ -1262,7 +1312,9 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 	}
 
 	if (!is_null($archive) && $archive != '') {
-		array_push($criteras, "persons.source = ".$archive);
+		array_push($criteras, "documents.source = ".$archive);
+		$join .= "INNER JOIN persondocuments ON persondocuments.person = persons.id ".
+			"INNER JOIN documents ON persondocuments.document = documents.id ";
 	}
 
 	if (!is_null($place) && $place != '') {
@@ -1350,11 +1402,12 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 	);
 
 	// All birth years
-	$sqlBirthYears = "SELECT birth_year year, ".
-		"Count(persons.id) AS c ".
-		"FROM persons LEFT JOIN places b_p ON persons.birthplace = b_p.id LEFT JOIN places d_p ON persons.deathplace = d_p.id ".
+	$sqlBirthYears = "SELECT persons.birth_year year, ".
+		"Count(DISTINCT persons.id) AS c ".
+		"FROM persons ".
+		$join.
 		"WHERE ".implode(' AND ', $criteras)." ".
-		"GROUP BY persons.birth_year ORDER BY birth_year"
+		"GROUP BY persons.birth_year ORDER BY persons.birth_year"
 	;
 
 	$resBirthYears = $db->query($sqlBirthYears);
@@ -1364,11 +1417,12 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 	}
 
 	// All death years
-	$sqlDeathYears = "SELECT death_year year, ".
-		"Count(persons.id) AS c ".
-		"FROM persons LEFT JOIN places b_p ON persons.birthplace = b_p.id LEFT JOIN places d_p ON persons.deathplace = d_p.id ".
+	$sqlDeathYears = "SELECT persons.death_year year, ".
+		"Count(DISTINCT persons.id) AS c ".
+		"FROM persons  ".
+		$join.
 		"WHERE ".implode(' AND ', $criteras)." ".
-		"GROUP BY persons.death_year ORDER BY death_year"
+		"GROUP BY persons.death_year ORDER BY persons.death_year"
 	;
 
 	$resDeathYears = $db->query($sqlDeathYears);
@@ -1378,11 +1432,12 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 	}
 
 	// Birth years on the map
-	$sqlBirthYears = "SELECT birth_year year, ".
-		"Count(persons.id) AS c ".
-		"FROM persons LEFT JOIN places b_p ON persons.birthplace = b_p.id LEFT JOIN places d_p ON persons.deathplace = d_p.id ".
+	$sqlBirthYears = "SELECT persons.birth_year year, ".
+		"Count(DISTINCT persons.id) AS c ".
+		"FROM persons ".
+		$join.
 		"WHERE ".implode(' AND ', $criteras)." AND (b_p.lat IS NOT NULL AND d_p.lat IS NOT NULL) ".
-		"GROUP BY persons.birth_year ORDER BY birth_year"
+		"GROUP BY persons.birth_year ORDER BY persons.birth_year"
 	;
 
 	$resBirthYears = $db->query($sqlBirthYears);
@@ -1392,11 +1447,12 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 	}
 
 	// Death years on the map
-	$sqlDeathYears = "SELECT death_year year, ".
-		"Count(persons.id) AS c ".
-		"FROM persons LEFT JOIN places b_p ON persons.birthplace = b_p.id LEFT JOIN places d_p ON persons.deathplace = d_p.id ".
+	$sqlDeathYears = "SELECT persons.death_year year, ".
+		"Count(DISTINCT persons.id) AS c ".
+		"FROM persons ".
+		$join.
 		"WHERE ".implode(' AND ', $criteras)." AND (b_p.lat IS NOT NULL AND d_p.lat IS NOT NULL) ".
-		"GROUP BY persons.death_year ORDER BY death_year"
+		"GROUP BY persons.death_year ORDER BY persons.death_year"
 	;
 
 	$resDeathYears = $db->query($sqlDeathYears);

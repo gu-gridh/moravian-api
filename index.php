@@ -71,7 +71,7 @@ $app->get('/areas/:num1/:num2', 'getAreas');
 // API v2
 $app->get('/v2/locations/movements/:num1/:num2(/)(range_type/:rangetype/?)(/)(gender/:gender/?)', 'getMovementLocationsV2');
 $app->get('/v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getLocationsV2');
-$app->get('/v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(/)(page/:page/?)', 'getPersonsPerYearV2');
+$app->get('/v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getPersonsPerYearV2');
 $app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(page/:page/?)(/)', 'getPersonsV2');
 //$app->get('/v2/persons(/)(place/:place/?)(/)(relation/:relation/?)(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getPersonsV2');
 
@@ -1261,7 +1261,7 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 
 	echo json_encode_is($data, array(
 		'sql' => $sql,
-		'page' => $page+$pageSize,
+		'page' => ''.$page,
 		'total' => $totalRow['total']
 	));
 }

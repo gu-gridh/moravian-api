@@ -1244,6 +1244,8 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 			"documents.reference, ".
 			"documents.ownhand, ".
 			"documents.comment, ".
+			"documents.doc_text fulltext, ".
+			"documents.docimages images, ".
 			"documents.source archive ".
 			"FROM documents INNER JOIN persondocuments ON persondocuments.document = documents.id ".
 			"WHERE persondocuments.person = ".$row['id']

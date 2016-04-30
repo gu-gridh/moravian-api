@@ -1009,6 +1009,8 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 			mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 		"%' OR LOWER(rel_p.area_ll) LIKE '%".
 			mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+		"%' OR LOWER(rel_p.google_name) LIKE '%".
+			mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 		"%')");
 
 		if (!is_null($placerelation) && $placerelation != '' && $placerelation == 'birth') {
@@ -1124,6 +1126,8 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(b_p.area_ll) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(b_p.google_name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%')");
 		}
 		else if (!is_null($placerelation) && $placerelation != '' && $placerelation == 'death') {
@@ -1138,6 +1142,8 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 				"%' OR LOWER(d_p.area_en) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(d_p.area_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(d_p.google_name) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%')");
 		}
@@ -1154,6 +1160,8 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(d_p.area_ll) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(d_p.google_name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(b_p.name) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(b_p.name_en) LIKE '%".
@@ -1165,6 +1173,8 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 				"%' OR LOWER(b_p.area_en) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(b_p.area_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(b_p.google_name) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%')");
 		}
@@ -1333,6 +1343,8 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(b_p.area_ll) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(b_p.google_name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%')");
 		}
 		else if (!is_null($placerelation) && $placerelation != '' && $placerelation == 'death') {
@@ -1347,6 +1359,8 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 				"%' OR LOWER(d_p.area_en) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(d_p.area_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(d_p.google_name) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%')");
 		}
@@ -1363,6 +1377,8 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(d_p.area_ll) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(d_p.google_name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(b_p.name) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(b_p.name_en) LIKE '%".
@@ -1374,6 +1390,8 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 				"%' OR LOWER(b_p.area_en) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%' OR LOWER(b_p.area_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(b_p.google_name) LIKE '%".
 					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
 				"%')");
 		}

@@ -59,13 +59,13 @@ define(function(require){
 		},
 
 		searchMarkerIcon: L.icon({
-			iconUrl: '/lebenslauf/js/lib/images/marker-icon-green.png',
-			iconRetinaUrl: '/lebenslauf/js/lib/images/marker-icon-green-2x.png',
+			iconUrl: 'js/lib/images/marker-icon-green.png',
+			iconRetinaUrl: 'js/lib/images/marker-icon-green-2x.png',
 			iconSize: [25, 41],
 			iconAnchor: [12, 41],
 			popupAnchor: [1, -34],
 			shadowSize: [41, 41],
-			shadowUrl: '/lebenslauf/js/lib/images/marker-shadow.png'
+			shadowUrl: 'js/lib/images/marker-shadow.png'
 		}),
 
 		geoLookupInputKeyUp: function(event) {

@@ -1254,6 +1254,7 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 			"documents.reference, ".
 			"documents.ownhand, ".
 			"documents.comment, ".
+			"documents.page, ".
 			"documents.doc_text, ".
 			"documents.docimages, ".
 			"documents.source archive ".

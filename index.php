@@ -69,7 +69,7 @@ $app->get('/areas/:num1/:num2', 'getAreas');
 
 
 // API v2
-$app->get('/v2/locations/movements/:num1/:num2(/)(range_type/:rangetype/?)(/)(gender/:gender/?)', 'getMovementLocationsV2');
+$app->get('/v2/locations/movements(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getMovementLocationsV2');
 $app->get('/v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getLocationsV2');
 $app->get('/v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getPersonsPerYearV2');
 $app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(page/:page/?)(/)', 'getPersonsV2');
@@ -880,7 +880,7 @@ function combinePersons($finalId) {
 
 // v2
 
-function getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null) {
+function _getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null) {
 	$condition = "";
 
 	if (!is_null($rangeType) && $rangeType != "") {
@@ -932,6 +932,210 @@ function getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = n
 		));
 	}
 	echo json_encode_is($data, array('sql' => $sql));
+}
+
+function getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null) {
+	$db = getConnection();
+
+	$criteras = array();
+
+	array_push($criteras, "p1.lat IS NOT NULL");
+	array_push($criteras, "p1.lng IS NOT NULL");
+	array_push($criteras, "p2.lat IS NOT NULL");
+	array_push($criteras, "p2.lng IS NOT NULL");
+
+	if (!is_null($gender) && $gender != '') {
+		if ($gender == 'male') {
+			array_push($criteras, "persons.gender = 0");
+		}
+		else if ($gender == 'female') {
+			array_push($criteras, "persons.gender = 1");
+		}
+	}
+
+	if (!is_null($name) && $name != '') {
+		array_push($criteras, "(LOWER(persons.surname) LIKE '%".
+			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
+		"%' OR LOWER(persons.surname_literal) LIKE '%".
+			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
+		"%' OR LOWER(persons.firstname) LIKE '%".
+			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
+		"%')");
+	}
+
+	if (!is_null($firstname) && $firstname != '') {
+		array_push($criteras, "LOWER(persons.firstname) LIKE '%".
+			mb_convert_case($firstname, MB_CASE_LOWER, "UTF-8").
+		"%'");
+	}
+
+	if (!is_null($surname) && $surname != '') {
+		array_push($criteras, "(LOWER(persons.surname) LIKE '%".
+			mb_convert_case($surname, MB_CASE_LOWER, "UTF-8").
+		"%' OR LOWER(persons.surname_literal) LIKE '%".
+			mb_convert_case($surname, MB_CASE_LOWER, "UTF-8").
+		"%')");
+	}
+
+	$placeJoin = '';
+
+	if (!is_null($archive) && $archive != '') {
+		array_push($criteras, "documents.source = ".$archive);
+		$placeJoin .= "INNER JOIN persondocuments ON persondocuments.person = persons.id ".
+			"INNER JOIN documents ON persondocuments.document = documents.id ";
+	}
+
+	
+	if (!is_null($place) && $place != '') {
+		if (!is_null($placerelation) && $placerelation != '' && $placerelation == 'birth') {
+			array_push($criteras, "(LOWER(p1.name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.name_en) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.name_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.area) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.area_en) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.area_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.google_name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%')");
+		}
+		else if (!is_null($placerelation) && $placerelation != '' && $placerelation == 'death') {
+			array_push($criteras, "(LOWER(p2.name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.name_en) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.name_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.area) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.area_en) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.area_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.google_name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%')");
+		}
+		else {
+			array_push($criteras, "(LOWER(p1.name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.name_en) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.name_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.area) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.area_en) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.area_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p1.google_name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.name_en) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.name_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.area) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.area_en) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.area_ll) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%' OR LOWER(p2.google_name) LIKE '%".
+					mb_convert_case($place, MB_CASE_LOWER, "UTF-8").
+				"%')");
+		}
+	}
+
+	if (!is_null($yearFrom) && $yearFrom != "" && !is_null($yearTo) && $yearTo != "") {
+		if (!is_null($rangeType) && $rangeType != "") {
+			if ($rangeType == 'birth') {
+				array_push($criteras, "persons.birth_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
+			}
+			else if ($rangeType == 'death') {
+				array_push($criteras, "persons.death_year >= ".$yearFrom." AND persons.death_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
+			}
+			else {
+				array_push($criteras, "persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
+			}
+		}
+		else {
+			array_push($criteras, "persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year");
+		}
+	}
+
+	$sql = "SELECT DISTINCT p1.id birthplace_id, ".
+		"p1.name birthplace_name, ".
+		"p1.area birthplace_area, ".
+		"p1.lat birthplace_lat, ".
+		"p1.lng birthplace_lng, ".
+		"p2.id deathplace_id, ".
+		"p2.name deathplace_name, ".
+		"p2.area deathplace_area, ".
+		"p2.lat deathplace_lat, ".
+		"p2.lng deathplace_lng ".
+		"FROM persons ".
+		"INNER JOIN places p1 ON persons.birthplace = p1.id ".
+		"INNER JOIN places p2 ON persons.deathplace = p2.id ".
+		$placeJoin.
+		"WHERE ".implode(' AND ', $criteras)." ".
+		" ORDER BY p1.id";
+
+	$db = getConnection();
+
+	$res = $db->query($sql);
+	
+	$data = array();
+	while ($row = $res->fetch_assoc()) {
+		array_push($data, array(
+			'birthplace' => array(
+				'id' => $row['birthplace_id'], 
+				'name' => $row['birthplace_name'],
+				'area' => $row['birthplace_area'],
+				'lat' => $row['birthplace_lat'],
+				'lng' => $row['birthplace_lng']
+			),
+			'deathplace' => array(
+				'id' => $row['deathplace_id'], 
+				'name' => $row['deathplace_name'],
+				'area' => $row['deathplace_area'],
+				'lat' => $row['deathplace_lat'],
+				'lng' => $row['deathplace_lng']
+			)
+		));
+	}
+	echo json_encode_is($data, array('sql' => $sql));
+
+/* -------------- 
+	$sql = "SELECT DISTINCT places.id, ".
+		"places.name, ".
+		"places.area, ".
+		"places.lat, ".
+		"places.lng, ".
+		"Count(DISTINCT persons.id) AS c ".
+		"FROM places ".
+		"INNER JOIN personplaces ON personplaces.place = places.id ".
+		"INNER JOIN persons ON personplaces.person = persons.id ".
+		$placeJoin.
+		"WHERE ".implode(' AND ', $criteras)." ".
+		"GROUP BY places.id"
+	;
+
+	$res = $db->query($sql);
+	
+	$data = array();
+	while ($row = $res->fetch_assoc()) {
+		array_push($data, $row);
+	}
+	echo json_encode_is($data, array('sql' => $sql));
+*/
 }
 
 // v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)

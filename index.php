@@ -880,60 +880,6 @@ function combinePersons($finalId) {
 
 // v2
 
-function _getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null) {
-	$condition = "";
-
-	if (!is_null($rangeType) && $rangeType != "") {
-		if ($rangeType == 'birth') {
-			$condition = " AND persons.birth_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year";
-		}
-		else if ($rangeType == 'death') {
-			$condition = " AND persons.death_year >= ".$yearFrom." AND persons.death_year <= ".$yearTo." AND persons.birth_year < persons.death_year";
-		}
-		else {
-			$condition = " AND persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year";
-		}
-	}
-	else {
-		$condition = " AND persons.death_year >= ".$yearFrom." AND persons.birth_year <= ".$yearTo." AND persons.birth_year < persons.death_year";
-	}
-
-	if (!is_null($gender) && $gender != '') {
-		if ($gender == 'male') {
-			$condition .= " AND persons.gender = 0";
-		}
-		else if ($gender == 'female') {
-			$condition .= " AND persons.gender = 1";
-		}
-	}
-
-	$sql = "SELECT DISTINCT p1.id birthplace_id, p1.name birthplace_name, p1.area birthplace_area, p1.lat birthplace_lat, p1.lng birthplace_lng, p2.id deathplace_id, p2.name deathplace_name, p2.area deathplace_area, p2.lat deathplace_lat, p2.lng deathplace_lng FROM persons INNER JOIN places p1 ON persons.birthplace = p1.id INNER JOIN places p2 ON persons.deathplace = p2.id WHERE p1.id <> p2.id AND p1.lat IS NOT NULL AND p1.lng IS NOT NULL and p2.lat IS NOT NULL and p2.lng IS NOT NULL".$condition." ORDER BY p1.id";
-	$db = getConnection();
-
-	$res = $db->query($sql);
-	
-	$data = array();
-	while ($row = $res->fetch_assoc()) {
-		array_push($data, array(
-			'birthplace' => array(
-				'id' => $row['birthplace_id'], 
-				'name' => $row['birthplace_name'],
-				'area' => $row['birthplace_area'],
-				'lat' => $row['birthplace_lat'],
-				'lng' => $row['birthplace_lng']
-			),
-			'deathplace' => array(
-				'id' => $row['deathplace_id'], 
-				'name' => $row['deathplace_name'],
-				'area' => $row['deathplace_area'],
-				'lat' => $row['deathplace_lat'],
-				'lng' => $row['deathplace_lng']
-			)
-		));
-	}
-	echo json_encode_is($data, array('sql' => $sql));
-}
-
 function getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null) {
 	$db = getConnection();
 
@@ -953,7 +899,7 @@ function getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = n
 		}
 	}
 
-	if (!is_null($name) && $name != '') {
+	if (!is_null($name) && $name != '' && (is_null($firstname) || $firstname == '') && (is_null($surname) || $surname == '')) {
 		array_push($criteras, "(LOWER(persons.surname) LIKE '%".
 			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
 		"%' OR LOWER(persons.surname_literal) LIKE '%".
@@ -1112,30 +1058,6 @@ function getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = n
 		));
 	}
 	echo json_encode_is($data, array('sql' => $sql));
-
-/* -------------- 
-	$sql = "SELECT DISTINCT places.id, ".
-		"places.name, ".
-		"places.area, ".
-		"places.lat, ".
-		"places.lng, ".
-		"Count(DISTINCT persons.id) AS c ".
-		"FROM places ".
-		"INNER JOIN personplaces ON personplaces.place = places.id ".
-		"INNER JOIN persons ON personplaces.person = persons.id ".
-		$placeJoin.
-		"WHERE ".implode(' AND ', $criteras)." ".
-		"GROUP BY places.id"
-	;
-
-	$res = $db->query($sql);
-	
-	$data = array();
-	while ($row = $res->fetch_assoc()) {
-		array_push($data, $row);
-	}
-	echo json_encode_is($data, array('sql' => $sql));
-*/
 }
 
 // v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)
@@ -1167,7 +1089,7 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 		}
 	}
 
-	if (!is_null($name) && $name != '') {
+	if (!is_null($name) && $name != '' && (is_null($firstname) || $firstname == '') && (is_null($surname) || $surname == '')) {
 		array_push($criteras, "(LOWER(persons.surname) LIKE '%".
 			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
 		"%' OR LOWER(persons.surname_literal) LIKE '%".
@@ -1286,7 +1208,7 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 		}
 	}
 
-	if (!is_null($name) && $name != '') {
+	if (!is_null($name) && $name != '' && (is_null($firstname) || $firstname == '') && (is_null($surname) || $surname == '')) {
 		array_push($criteras, "(LOWER(persons.surname) LIKE '%".
 			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
 		"%' OR LOWER(persons.surname_literal) LIKE '%".
@@ -1504,7 +1426,7 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 		}
 	}
 
-	if (!is_null($name) && $name != '') {
+	if (!is_null($name) && $name != '' && (is_null($firstname) || $firstname == '') && (is_null($surname) || $surname == '')) {
 		array_push($criteras, "(LOWER(persons.surname) LIKE '%".
 			mb_convert_case($name, MB_CASE_LOWER, "UTF-8").
 		"%' OR LOWER(persons.surname_literal) LIKE '%".

@@ -55,6 +55,8 @@ $app->get('/locations/population', 'getLocationsPopulations');
 $app->get('/locations/movements(/:num1/:num2)', 'getMovementLocations');
 $app->get('/locations', 'getLocations');
 
+$app->get('/document/:id', 'getDocument');
+
 $app->get('/place/:id', 'getPlace');
 
 $app->get('/places/duplicates/:num1/:num2', 'getDuplicatePlaces');
@@ -72,6 +74,9 @@ $app->get('/v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rang
 $app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(page/:page/?)(/)', 'getPersonsV2');
 //$app->get('/v2/persons(/)(place/:place/?)(/)(relation/:relation/?)(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getPersonsV2');
 
+
+// Transcriptions
+$app->get('/transcriptions/:id', 'getTranscriptionsById');
 
 
 // Admin
@@ -1400,6 +1405,109 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 		'page' => ''.$page,
 		'total' => $totalRow['total']
 	));
+}
+
+function base64UrlEncode($str) {
+	return strtr(rtrim(base64_encode($str), '='), '+/', '-_');
+}
+
+function getTranscriptionsById($id) {
+	include 'config.php';
+
+	$jsonString = @file_get_contents($wp_url.'tag/'.$id.'/?json=1');
+
+	if ($jsonString) {
+		$json = json_decode($jsonString, true);
+
+		if (count($json['posts']) > 0) {
+			$post = $json['posts'][0];
+
+			$post_id = $post['id'];
+
+			$data = array(
+				'wp_id' => $post_id,
+				'wp_title' => $post['title'],
+				'wp_url' => $post['url'],
+				'transcriptions' => array()
+			);
+
+			foreach ($post['attachments'] as $attachment) {
+				$mediaWikiTitle = '.'.base64UrlEncode($post_id).'.'.base64UrlEncode($attachment['id']);
+
+				$mediaWikiData = file_get_contents('http://localhost/mediawiki_test/api.php?action=query&titles='.$mediaWikiTitle.'&prop=revisions&format=json&rvprop=content');
+				$revisionJson = json_decode($mediaWikiData, true);
+
+				$page = current($revisionJson['query']['pages']);
+
+				$imageData = array(
+					'id' => $attachment['id'],
+					'url' => $attachment['url']
+	//				'revisions' => $revisionJson
+				);
+
+				if (isset($page['revisions'][0]['*'])) {
+					$imageData['transcription'] = $page['revisions'][0]['*'];
+				}
+
+				array_push($data['transcriptions'], $imageData);
+			}
+
+			echo json_encode($data);
+		}
+	}
+	else {
+		echo json_encode(array(
+			'error' => 'transcriptions not found'
+		));
+	}
+}
+
+function getDocument($id) {
+	$db = getConnection();
+
+	$docSql = 'SELECT documents.*, b_p.name birthplacename, b_p.area birthplacearea, b_p.lat birthplacelat, b_p.lng birthplacelng, d_p.name deathplacename, d_p.area deathplacearea, d_p.lat deathplacelat, d_p.lng deathplacelng FROM documents INNER JOIN places b_p ON documents.birthplace = b_p.id INNER JOIN places d_p ON documents.deathplace = d_p.id INNER JOIN persondocuments ON persondocuments.document = documents.id WHERE documents.id = '.$id;
+
+	$docRes = $db->query($docSql);
+
+	$docRow = $docRes->fetch_assoc();
+
+	$data = array(
+		'id' => $docRow['id'],
+		'll_id' => $docRow['ll_id'],
+		'll_idnum' => $docRow['ll_idnum'],
+		'surname' => $docRow['surname'],
+		'surname_literal' => $docRow['surname_literal'],
+		'firstname' => $docRow['firstname'],
+		'gender' => $docRow['gender'],
+		'familystatus' => $docRow['familystatus'],
+		'reference' => $docRow['reference'],
+		'birth' => array(
+			'day' => $docRow['birth_day'],
+			'month' => $docRow['birth_month'],
+			'year' => $docRow['birth_year'],
+			'll_place' => $docRow['ll_birthplace'],
+			'place' => array(
+				'id' => $docRow['birthplace'],
+				'name' => $docRow['birthplacename'],
+				'lat' => $docRow['birthplacelat'],
+				'lng' => $docRow['birthplacelng']
+			)
+		),
+		'death' => array(
+			'day' => $docRow['death_day'],
+			'month' => $docRow['death_month'],
+			'year' => $docRow['death_year'],
+			'll_place' => $docRow['ll_deathplace'],
+			'place' => array(
+				'id' => $docRow['deathplace'],
+				'name' => $docRow['deathplacename'],
+				'lat' => $docRow['deathplacelat'],
+				'lng' => $docRow['deathplacelng']
+			)
+		)
+	);
+
+	echo json_encode_is($data);
 }
 
 // v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(page/:page/?)

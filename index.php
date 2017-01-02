@@ -1383,8 +1383,8 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 			"documents.ownhand, ".
 			"documents.comment, ".
 			"documents.page, ".
-			"documents.doc_text, ".
-			"documents.docimages, ".
+//			"documents.doc_text, ".
+//			"documents.docimages, ".
 			"documents.source archive ".
 			"FROM documents INNER JOIN persondocuments ON persondocuments.document = documents.id ".
 			"WHERE persondocuments.person = ".$row['id']
@@ -1394,7 +1394,7 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 		$row['documents'] = array();
 
 		while ($docRow = $docRes->fetch_assoc()) {
-//			$docRow['transcriptions'] = _getTranscriptionsById($docRow['id']);
+			$docRow['transcriptions'] = _getTranscriptionsById($docRow['id']);
 
 			array_push($row['documents'], $docRow);
 		}

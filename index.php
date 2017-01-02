@@ -1394,6 +1394,8 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 		$row['documents'] = array();
 
 		while ($docRow = $docRes->fetch_assoc()) {
+//			$docRow['transcriptions'] = _getTranscriptionsById($docRow['id']);
+
 			array_push($row['documents'], $docRow);
 		}
 
@@ -1411,7 +1413,7 @@ function base64UrlEncode($str) {
 	return strtr(rtrim(base64_encode($str), '='), '+/', '-_');
 }
 
-function getTranscriptionsById($id) {
+function _getTranscriptionsById($id) {
 	include 'config.php';
 
 	$jsonString = @file_get_contents($wp_url.'tag/'.$id.'/?json=1');
@@ -1452,14 +1454,18 @@ function getTranscriptionsById($id) {
 				array_push($data['transcriptions'], $imageData);
 			}
 
-			echo json_encode($data);
+			return $data;
 		}
 	}
 	else {
-		echo json_encode(array(
+		return array(
 			'error' => 'transcriptions not found'
-		));
+		);
 	}
+}
+
+function getTranscriptionsById($id) {
+	echo json_encode(_getTranscriptionsById($id));
 }
 
 function getDocument($id) {

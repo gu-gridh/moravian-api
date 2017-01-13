@@ -76,6 +76,7 @@ $app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(
 
 
 // Transcriptions
+$app->get('/transcriptions/count', 'getTranscriptionsCount');
 $app->get('/transcriptions/:id', 'getTranscriptionsById');
 
 
@@ -1409,6 +1410,19 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 	));
 }
 
+function getTranscriptionsCount() {
+	include 'config.php';
+
+	$db = getConnection();
+
+	$sql = 'SELECT id FROM documents';
+	$res = $db->query($sql);
+
+	while ($row = $res->fetch_assoc()) {
+
+	}
+}
+
 function base64UrlEncode($str) {
 	return strtr(rtrim(base64_encode($str), '='), '+/', '-_');
 }
@@ -1443,7 +1457,9 @@ function _getTranscriptionsById($id) {
 
 				$imageData = array(
 					'id' => $attachment['id'],
-					'url' => $attachment['url']
+					'url' => $attachment['url'],
+					'thumb' => $attachment['images']['thumbnail']['url'],
+					'medium' => $attachment['images']['medium']['url']
 	//				'revisions' => $revisionJson
 				);
 

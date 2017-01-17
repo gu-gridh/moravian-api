@@ -77,7 +77,8 @@ $app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(
 
 // Transcriptions
 $app->get('/transcriptions/count', 'getTranscriptionsCount');
-$app->get('/transcriptions/:id', 'getTranscriptionsById');
+$app->get('/transcriptions/wp_search(/:query)', 'wpSearchTranscriptions');
+$app->get('/transcription/:id', 'getTranscriptionsById');
 
 
 // Admin
@@ -1420,6 +1421,48 @@ function getTranscriptionsCount() {
 
 	while ($row = $res->fetch_assoc()) {
 
+	}
+}
+
+function wpSearchTranscriptions($query = null) {
+	include 'config.php';
+
+	$url = $wp_url.'wp-json/wp/v2/posts?categories='.$wp_transcription_category;
+	if ($query) {
+		$url = $url.'&search='.$query;
+	}
+
+	$jsonString = @file_get_contents($url);
+
+	$data = array();
+
+	if ($jsonString) {
+		$json = json_decode($jsonString, true);
+
+		foreach ($json as $item) {
+			$mediaJsonString = @file_get_contents($wp_url.'wp-json/wp/v2/media?orderby=id&order=asc&parent='.$item['id']);
+
+			if ($mediaJsonString) {
+				$mediaJson = json_decode($mediaJsonString, true);
+
+				$mediaObj = array();
+
+				foreach ($mediaJson as $media) {
+					array_push($mediaObj, array(
+						'id' => $media['id'],
+						'url' => $media['media_details']['sizes']['full']['source_url'],
+						'thumb' => $media['media_details']['sizes']['thumbnail']['source_url'],
+						'medium' => $media['media_details']['sizes']['medium']['source_url']
+					));
+				}
+
+				$item['media'] = $mediaObj;
+			}
+
+			array_push($data, $item);
+		}
+
+		echo json_encode_is($data);
 	}
 }
 

@@ -66,7 +66,6 @@ $app->get('/places/:num1/:num2(/:order(/:dir))', 'getPlaces');
 $app->get('/areas/:num1/:num2', 'getAreas');
 
 
-
 // API v2
 $app->get('/v2/locations/movements(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getMovementLocationsV2');
 $app->get('/v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getLocationsV2');
@@ -77,7 +76,8 @@ $app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(
 
 // Transcriptions
 $app->get('/transcriptions/count', 'getTranscriptionsCount');
-$app->get('/transcriptions/wp_search(/:query)', 'wpSearchTranscriptions');
+$app->get('/transcriptions/locations', 'getTranscriptionsLocations');
+$app->get('/transcriptions/wp_search(/)(search/:query/?)(/)(language/:language/?)(/)(country/:country/?)(/)(archive/:archive/?)', 'wpSearchTranscriptions');
 $app->get('/transcription/:id', 'getTranscriptionsById');
 
 
@@ -98,6 +98,15 @@ function getConnection() {
 	include 'config.php';
 
 	$db = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
+	$db->set_charset('utf8');
+
+	return $db;
+}
+
+function getConnectionWP() {
+	include 'config.php';
+
+	$db = new mysqli($dbhost, $dbuser, $dbpass, $wpDbname);
 	$db->set_charset('utf8');
 
 	return $db;
@@ -1414,22 +1423,85 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 function getTranscriptionsCount() {
 	include 'config.php';
 
-	$db = getConnection();
+	$db = getConnectionWP();
 
-	$sql = 'SELECT id FROM documents';
+	$sql = "SELECT count(*) c FROM wp_posts AS posts INNER JOIN wp_posts AS attachments ON attachments.post_parent = posts.ID WHERE posts.post_type = 'memoirs' AND attachments.post_type = 'attachment'";
 	$res = $db->query($sql);
 
-	while ($row = $res->fetch_assoc()) {
+	$row = $res->fetch_assoc();
 
-	}
+	$mediaWikiData = file_get_contents($mediawiki_url.'?action=query&meta=siteinfo&siprop=statistics&format=json');
+	$mwData = json_decode($mediaWikiData, true);
+
+//	echo $row['c'];
+
+	echo json_encode_is(array(
+		'total' => intval($row['c']),
+		'transcribed' => $mwData['query']['statistics']['pages']
+	));
 }
 
-function wpSearchTranscriptions($query = null) {
+function getTranscriptionsLocations() {
 	include 'config.php';
 
-	$url = $wp_url.'wp-json/wp/v2/posts?categories='.$wp_transcription_category;
+	$url = $wp_url.'category/transcriptions/?json=1';
+
+	$jsonString = @file_get_contents($url);
+
+	$data = array();
+
+	$locations = array();
+	$db = getConnection();
+
+	if ($jsonString) {
+		$json = json_decode($jsonString, true);
+
+		foreach ($json['posts'] as $item) {
+			foreach ($item['tags'] as $tag) {
+				$tag = $tag['slug'];
+
+				$sql = 'SELECT '.
+					'places.id, '.
+					'places.name, '.
+					'places.area, '.
+					'places.lat, '.
+					'places.lng, '.
+					'personplaces.relation '.
+					'FROM '.
+					'places '.
+					'RIGHT JOIN personplaces ON personplaces.place = places.id '.
+					'RIGHT JOIN persondocuments ON persondocuments.person = personplaces.person '.
+					'WHERE '.
+					'persondocuments.document = '.$tag;
+
+				$res = $db->query($sql);
+
+				while ($row = $res->fetch_assoc()) {
+					array_push($locations, $row);
+				}
+			}
+		}
+	}
+
+	echo json_encode_is($locations);
+}
+
+function wpSearchTranscriptions($query = null, $language = null, $country = null, $archive = null) {
+	include 'config.php';
+
+
+	$url = $wp_url.'wp-json/wp/v2/memoirs';
 	if ($query) {
-		$url = $url.'&search='.$query;
+		$url = $url.'?search='.$query;
+	}
+	else if ($language) {
+		$url = $url.'?memoir-language='.$language;		
+	}
+	else if ($country) {
+		$url = $url.'?memoir-countries='.$country;		
+	}
+	else if ($archive) {
+		$url = $url.'?memoir-archive='.$archive;		
 	}
 
 	$jsonString = @file_get_contents($url);
@@ -1473,7 +1545,7 @@ function base64UrlEncode($str) {
 function _getTranscriptionsById($id) {
 	include 'config.php';
 
-	$jsonString = @file_get_contents($wp_url.'tag/'.$id.'/?json=1');
+	$jsonString = @file_get_contents($wp_url.'tag/'.$id.'/?json=get_posts&post_type=memoirs');
 
 	if ($jsonString) {
 		$json = json_decode($jsonString, true);

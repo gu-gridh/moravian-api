@@ -68,9 +68,9 @@ $app->get('/areas/:num1/:num2', 'getAreas');
 
 // API v2
 $app->get('/v2/locations/movements(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getMovementLocationsV2');
-$app->get('/v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getLocationsV2');
-$app->get('/v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getPersonsPerYearV2');
-$app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(page/:page/?)(/)', 'getPersonsV2');
+$app->get('/v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(doc_id/:doc_id/?)(/)', 'getLocationsV2');
+$app->get('/v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(doc_id/:doc_id/?)(/)', 'getPersonsPerYearV2');
+$app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(page/:page/?)(/)(doc_id/:doc_id/?)(/)', 'getPersonsV2');
 //$app->get('/v2/persons(/)(place/:place/?)(/)(relation/:relation/?)(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getPersonsV2');
 
 
@@ -1074,7 +1074,7 @@ function getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = n
 }
 
 // v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)
-function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $relationType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null) {
+function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $relationType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null, $doc_id = null) {
 	$db = getConnection();
 
 	$relationType = is_null($relationType) || $relationType == "" || $relationType == "both" ? "both" : $relationType;
@@ -1128,7 +1128,7 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 
 	$placeJoin = '';
 
-	if (!is_null($archive) && $archive != '') {
+	if ((!is_null($archive) && $archive != '') || (!is_null($doc_id) && $doc_id != '')) {
 		array_push($criteras, "documents.source = ".$archive);
 		$placeJoin .= "INNER JOIN persondocuments ON persondocuments.person = persons.id ".
 			"INNER JOIN documents ON persondocuments.document = documents.id ";
@@ -1190,9 +1190,11 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 		"INNER JOIN personplaces ON personplaces.place = places.id ".
 		"INNER JOIN persons ON personplaces.person = persons.id ".
 		$placeJoin.
-		"WHERE ".implode(' AND ', $criteras)." ".
+		"WHERE ".((!is_null($doc_id) && $doc_id != '') ? 'persondocuments.document = '.$doc_id : implode(' AND ', $criteras))." ".
 		"GROUP BY places.id"
 	;
+
+	return;
 
 	$res = $db->query($sql);
 	
@@ -1204,8 +1206,9 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 }
 
 // v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(page/:page/?)
-function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null, $page = 0) {
+function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null, $page = 0, $doc_id = null) {
 	$pageSize = 40;
+	$page = $page == '' ? 0 : $page;
 
 	$db = getConnection();
 
@@ -1245,7 +1248,7 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 		"%')");
 	}
 
-	if (!is_null($archive) && $archive != '') {
+	if ((!is_null($archive) && $archive != '') || (!is_null($doc_id) && $doc_id != '')) {
 		array_push($criteras, "documents.source = ".$archive);
 		$join .= "INNER JOIN persondocuments ON persondocuments.person = persons.id ".
 			"INNER JOIN documents ON persondocuments.document = documents.id ";
@@ -1361,7 +1364,7 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 		"d_p.lng deathplacelng " .
 		"FROM persons ".
 		$join.
-		"WHERE ".implode(' AND ', $criteras)." ".
+		"WHERE ".((!is_null($doc_id) && $doc_id != '') ? 'persondocuments.document = '.$doc_id : implode(' AND ', $criteras))." ".
 		"LIMIT ".$page.", ".$pageSize
 	;
 

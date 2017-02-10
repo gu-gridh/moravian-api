@@ -1190,7 +1190,7 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 		"INNER JOIN personplaces ON personplaces.place = places.id ".
 		"INNER JOIN persons ON personplaces.person = persons.id ".
 		$placeJoin.
-		"WHERE ".((!is_null($doc_id) && $doc_id != '') ? 'persondocuments.document = '.$doc_id : implode(' AND ', $criteras))." ".
+		"WHERE ".((!is_null($doc_id) && $doc_id != '') ? 'persondocuments.document = '.$doc_id.' AND places.lat IS NOT NULL AND places.lng IS NOT NULL' : implode(' AND ', $criteras))." ".
 		"GROUP BY places.id"
 	;
 

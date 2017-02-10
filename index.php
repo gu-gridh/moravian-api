@@ -1649,7 +1649,7 @@ function getDocument($id) {
 }
 
 // v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(page/:page/?)
-function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null) {
+function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null, $gender = null, $place = null, $placerelation = null, $name = null, $firstname = null, $surname = null, $archive = null, $doc_id = null) {
 	$db = getConnection();
 
 	$join = "LEFT JOIN places b_p ON persons.birthplace = b_p.id LEFT JOIN places d_p ON persons.deathplace = d_p.id ";
@@ -1693,7 +1693,7 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 		"%')");
 	}
 
-	if (!is_null($archive) && $archive != '') {
+	if ((!is_null($archive) && $archive != '') || (!is_null($doc_id) && $doc_id != '')) {
 		array_push($criteras, "documents.source = ".$archive);
 		$join .= "INNER JOIN persondocuments ON persondocuments.person = persons.id ".
 			"INNER JOIN documents ON persondocuments.document = documents.id ";
@@ -1796,7 +1796,7 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 		"Count(DISTINCT persons.id) AS c ".
 		"FROM persons ".
 		$join.
-		"WHERE ".implode(' AND ', $criteras)." ".
+		"WHERE ".((!is_null($doc_id) && $doc_id != '') ? 'persondocuments.document = '.$doc_id : implode(' AND ', $criteras))." ".
 		"GROUP BY persons.birth_year ORDER BY persons.birth_year"
 	;
 
@@ -1811,7 +1811,7 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 		"Count(DISTINCT persons.id) AS c ".
 		"FROM persons  ".
 		$join.
-		"WHERE ".implode(' AND ', $criteras)." ".
+		"WHERE ".((!is_null($doc_id) && $doc_id != '') ? 'persondocuments.document = '.$doc_id : implode(' AND ', $criteras))." ".
 		"GROUP BY persons.death_year ORDER BY persons.death_year"
 	;
 
@@ -1826,7 +1826,7 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 		"Count(DISTINCT persons.id) AS c ".
 		"FROM persons ".
 		$join.
-		"WHERE ".implode(' AND ', $criteras)." AND (b_p.lat IS NOT NULL AND d_p.lat IS NOT NULL) ".
+		"WHERE ".((!is_null($doc_id) && $doc_id != '') ? 'persondocuments.document = '.$doc_id : implode(' AND ', $criteras))." AND (b_p.lat IS NOT NULL AND d_p.lat IS NOT NULL) ".
 		"GROUP BY persons.birth_year ORDER BY persons.birth_year"
 	;
 
@@ -1841,7 +1841,7 @@ function getPersonsPerYearV2($yearFrom = null, $yearTo = null, $rangeType = null
 		"Count(DISTINCT persons.id) AS c ".
 		"FROM persons ".
 		$join.
-		"WHERE ".implode(' AND ', $criteras)." AND (b_p.lat IS NOT NULL AND d_p.lat IS NOT NULL) ".
+		"WHERE ".((!is_null($doc_id) && $doc_id != '') ? 'persondocuments.document = '.$doc_id : implode(' AND ', $criteras))." AND (b_p.lat IS NOT NULL AND d_p.lat IS NOT NULL) ".
 		"GROUP BY persons.death_year ORDER BY persons.death_year"
 	;
 

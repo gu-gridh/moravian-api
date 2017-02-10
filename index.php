@@ -1194,8 +1194,6 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 		"GROUP BY places.id"
 	;
 
-	return;
-
 	$res = $db->query($sql);
 	
 	$data = array();

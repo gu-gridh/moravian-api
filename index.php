@@ -1663,13 +1663,13 @@ function getTEIDocument($id) {
 	$document = _getDocument($id);
 	$transcriptions = _getTranscriptionsById($id);
 
-//	$app->response->headers->set('Content-Type', 'text/xml');
+	$app->response->headers->set('Content-Type', 'text/xml');
 
 	$textContent = '';
 	foreach ($transcriptions['transcriptions'] as $transcription) {
 		$textContent .= '<div><figure>'.
 			'<graphic url="'.$transcription['medium'].'"/>'.
-		'</figure>'.(isset($transcription['transcription']) ? $transcription['transcription'] : '').'</div>';
+		'</figure>'.(isset($transcription['transcription']) ? '<p>'.$transcription['transcription'].'</p>' : '').'</div>';
 	}
 
 	echo '<TEI xmlns="http://www.tei-c.org/ns/1.0">'.

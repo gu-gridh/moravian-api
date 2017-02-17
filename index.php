@@ -81,6 +81,9 @@ $app->get('/transcriptions/wp_search(/)(search/:query/?)(/)(language/:language/?
 $app->get('/transcription/:id', 'getTranscriptionsById');
 
 
+// TEI export
+$app->get('/tei/document/:id', 'getTEIDocument');
+
 // Admin
 $app->post('/admin/person/:id', 'postPerson');
 $app->post('/admin/place/:id', 'postPlace');
@@ -185,7 +188,7 @@ function getPersons($num1 = null, $num2 = null, $order = null, $orderdir = null)
 }
 
 function searchPersons($query, $order = null, $orderdir = null) {
-	$sql = "SELECT persons.*, b_p.name birthplacename, b_p.area birthplacearea, b_p.lat birthplacelat, b_p.lng birthplacelng, d_p.name deathplacename, d_p.area deathplacearea, d_p.lat deathplacelat, d_p.lng deathplacelng FROM persons INNER JOIN places b_p ON persons.birthplace = b_p.id INNER JOIN places d_p ON persons.deathplace = d_p.id ".
+	$sql = "SELECT persons.*, b_p.name birthplacename, b_p.area birthplacearea, b_p.lat birthplacelat, b_p.lng birthplacelng, d_p.name deathplacename, d_p.area deathplacearea, d_p.lat deathplacelat, d_p.lng deathplacelng FROM persons LEFT JOIN places b_p ON persons.birthplace = b_p.id LEFT JOIN places d_p ON persons.deathplace = d_p.id ".
 		" WHERE LOWER(persons.surname) LIKE '%".strtolower($query)."%' OR LOWER(persons.surname_literal) LIKE '%".strtolower($query)."%' OR LOWER(persons.firstname) LIKE '%".strtolower($query)."%' OR LOWER(persons.ll_id) LIKE '%".strtolower($query)."%'".
 		(
 			!is_null($order) ? " ORDER BY persons.".$order.(!is_null($orderdir) ? ' '.$orderdir : ' ASC') : ''
@@ -271,7 +274,7 @@ function getPersonsByAge($age, $buffer) {
 }
 
 function getPerson($id) {
-	$sql = "SELECT persons.*, b_p.name birthplacename, b_p.area birthplacearea, b_p.lat birthplacelat, b_p.lng birthplacelng, d_p.name deathplacename, d_p.area deathplacearea, d_p.lat deathplacelat, d_p.lng deathplacelng FROM persons INNER JOIN places b_p ON persons.birthplace = b_p.id INNER JOIN places d_p ON persons.deathplace = d_p.id WHERE persons.id = ".$id;
+	$sql = "SELECT persons.*, b_p.name birthplacename, b_p.area birthplacearea, b_p.lat birthplacelat, b_p.lng birthplacelng, d_p.name deathplacename, d_p.area deathplacearea, d_p.lat deathplacelat, d_p.lng deathplacelng FROM persons LEFT JOIN places b_p ON persons.birthplace = b_p.id LEFT JOIN places d_p ON persons.deathplace = d_p.id WHERE persons.id = ".$id;
 
 	$db = getConnection();
 
@@ -1600,7 +1603,7 @@ function getTranscriptionsById($id) {
 	echo json_encode(_getTranscriptionsById($id));
 }
 
-function getDocument($id) {
+function _getDocument($id) {
 	$db = getConnection();
 
 	$docSql = 'SELECT documents.*, b_p.name birthplacename, b_p.area birthplacearea, b_p.lat birthplacelat, b_p.lng birthplacelng, d_p.name deathplacename, d_p.area deathplacearea, d_p.lat deathplacelat, d_p.lng deathplacelng FROM documents INNER JOIN places b_p ON documents.birthplace = b_p.id INNER JOIN places d_p ON documents.deathplace = d_p.id INNER JOIN persondocuments ON persondocuments.document = documents.id WHERE documents.id = '.$id;
@@ -1645,7 +1648,48 @@ function getDocument($id) {
 		)
 	);
 
+	return $data;
+}
+
+function getDocument($id) {
+	$data = _getDocument($id);
+
 	echo json_encode_is($data);
+}
+
+function getTEIDocument($id) {
+	global $app;
+
+	$document = _getDocument($id);
+	$transcriptions = _getTranscriptionsById($id);
+
+//	$app->response->headers->set('Content-Type', 'text/xml');
+
+	$textContent = '';
+	foreach ($transcriptions['transcriptions'] as $transcription) {
+		$textContent .= '<div><figure>'.
+			'<graphic url="'.$transcription['medium'].'"/>'.
+		'</figure>'.(isset($transcription['transcription']) ? $transcription['transcription'] : '').'</div>';
+	}
+
+	echo '<TEI xmlns="http://www.tei-c.org/ns/1.0">'.
+		'<teiHeader>'.
+			'<fileDesc>'.
+				'<titleStmt>'.
+					'<title>'.$transcriptions['wp_title'].'</title>'.
+				'</titleStmt>'.
+				'<sourceDesc>'.
+					'<p>'.$document['ll_id'].'</p>'.
+				'</sourceDesc>'.
+			'</fileDesc>'.
+		'</teiHeader>'.
+		'<text>'.
+			'<body>'.
+				'<head>'.$transcriptions['wp_title'].'</head>'.
+				$textContent.
+			'</body>'.
+		'</text>'.
+	'</TEI>';
 }
 
 // v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(page/:page/?)

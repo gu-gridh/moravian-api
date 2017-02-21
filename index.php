@@ -1672,23 +1672,23 @@ function getTEIDocument($id) {
 		'</figure>'.(isset($transcription['transcription']) ? '<p>'.$transcription['transcription'].'</p>' : '').'</div>';
 	}
 
-	echo '<TEI xmlns="http://www.tei-c.org/ns/1.0">'.
-		'<teiHeader>'.
-			'<fileDesc>'.
-				'<titleStmt>'.
-					'<title>'.$transcriptions['wp_title'].'</title>'.
-				'</titleStmt>'.
-				'<sourceDesc>'.
-					'<p>'.$document['ll_id'].'</p>'.
-				'</sourceDesc>'.
-			'</fileDesc>'.
-		'</teiHeader>'.
-		'<text>'.
-			'<body>'.
-				'<head>'.$transcriptions['wp_title'].'</head>'.
-				$textContent.
-			'</body>'.
-		'</text>'.
+	echo '<TEI xmlns="http://www.tei-c.org/ns/1.0">'."\n".
+	'	<teiHeader>'."\n".
+	'		<fileDesc>'."\n".
+	'			<titleStmt>'."\n".
+	'				<title>'.$transcriptions['wp_title'].'</title>'."\n".
+	'			</titleStmt>'."\n".
+	'			<sourceDesc>'."\n".
+	'				<p>'.$document['ll_id'].'</p>'."\n".
+	'			</sourceDesc>'."\n".
+	'		</fileDesc>'."\n".
+	'	</teiHeader>'."\n".
+	'	<text>'."\n".
+	'		<body>'."\n".
+	'			<head>'.$transcriptions['wp_title'].'</head>'."\n".
+	'			'.$textContent."\n".
+	'		</body>'."\n".
+	'	</text>'."\n".
 	'</TEI>';
 }
 

@@ -1567,7 +1567,7 @@ function _getTranscriptionsById($id) {
 			);
 
 			foreach ($post['attachments'] as $attachment) {
-				$mediaWikiTitle = '.'.base64UrlEncode($post_id).'.'.base64UrlEncode($attachment['id']);
+				$mediaWikiTitle = '.'.$post_id.'.'.$attachment['id'];
 
 				$mediaWikiData = file_get_contents($mediawiki_url.'?action=query&titles='.$mediaWikiTitle.'&prop=revisions&format=json&rvprop=content');
 				$revisionJson = json_decode($mediaWikiData, true);

@@ -38,9 +38,16 @@ $app->add(new \Slim\Middleware\HttpBasicAuthentication([
 
 $app->get('/', 'frontPage');
 
+// Get single persons metadata by ID
 $app->get('/person/:id', 'getPerson');
 
+// Get list of persons that appear to be duplicate entires
 $app->get('/persons/duplicates/:num1/:num2', 'getDuplicatePersons');
+
+/*
+ ------------------
+ DEPRECATED v1 methods, look at API v2 instead
+*/
 $app->get('/persons/place/:place', 'getPersonsByPlace');
 $app->get('/persons/birthplace/:place', 'getPersonsByBirthPlace');
 $app->get('/persons/deathplace/:place', 'getPersonsByDeathPlace');
@@ -54,30 +61,109 @@ $app->get('/locations/age/:age/:buffer', 'getLocationsByAge');
 $app->get('/locations/population', 'getLocationsPopulations');
 $app->get('/locations/movements(/:num1/:num2)', 'getMovementLocations');
 $app->get('/locations', 'getLocations');
+/*
+ ------------------
+*/
 
+// Get single document metadata by ID
 $app->get('/document/:id', 'getDocument');
 
+// Get single place metadata by ID
 $app->get('/place/:id', 'getPlace');
 
+// Get list of places which appear to be duplicate entires
 $app->get('/places/duplicates/:num1/:num2', 'getDuplicatePlaces');
+
+// Search for places by name
 $app->get('/places/search/:query', 'searchPlaces');
+
+// Get list of places
 $app->get('/places/:num1/:num2(/:order(/:dir))', 'getPlaces');
 
+// Get list of areas (countries, disctricts, counties, ...)
 $app->get('/areas/:num1/:num2', 'getAreas');
 
 
-// API v2
+/*
+ ------------------
+ API v2
+ ------------------
+
+ Get data about movements (from birth place to death place)
+ - year_range: birth year and death year
+ - range_type (birth/death/null): defines if searching for persons born within range (birth), 
+     persons deceased within the range (death) or persons living within the range (null/empty)
+ - gender (male/female/null): search by gender
+ - place: search for a place name related to the persons
+ - placerelation (birth/death/null): defines relation of place parameter to persons, birth place, death place or both (null/empty)
+ - name: search for firstname or surname
+ - firstname: search for firstname
+ - surname: search for surname
+ - archive: search by archive (Herrnhut = 1, Bethlehem = 2, London = 3, 1...)
+*/
 $app->get('/v2/locations/movements(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)', 'getMovementLocationsV2');
+
+
+/*
+ Get locations (places with known coordinates)
+ - year_range: birth year and death year of persons related to places
+ - range_type (birth/death/null): defines if searching for places related to persons born within range (birth), 
+      persons deceased within the range (death) or persons living within the range (null/empty)
+ - gender (male/female/null): search by gender
+ - place: search for a place name
+ - placerelation (birth/death/null): defines relation of places to persons, birth place, death place or both (null/empty)
+ - name: search for firstname or surname
+ - firstname: search for firstname
+ - surname: search for surname
+ - archive: search by archive (Herrnhut = 1, Bethlehem = 2, London = 3, 1...)
+ - doc_id: search for places related to persons related to a specific document ID
+*/
 $app->get('/v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(doc_id/:doc_id/?)(/)', 'getLocationsV2');
+
+/*
+ Get graph data with count of persons by birth years and death years
+ - year_range: birth year and death year of persons
+ - range_type (birth/death/null): defines if searching for persons born within range (birth), 
+      persons deceased within the range (death) or persons living within the range (null/empty)
+ - gender (male/female/null): search by gender
+ - place: search for a place name related to the persons
+ - placerelation (birth/death/null): defines relation of place parameter persons, birth place, death place or both (null/empty)
+ - name: search for firstname or surname
+ - firstname: search for firstname
+ - surname: search for surname
+ - archive: search by archive (Herrnhut = 1, Bethlehem = 2, London = 3, 1...)
+ - doc_id: search for persons related to a specific document ID
+*/
 $app->get('/v2/persons/per_year(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(doc_id/:doc_id/?)(/)', 'getPersonsPerYearV2');
+
+/*
+ Get list of persons
+ - year_range: birth year and death year of persons
+ - range_type (birth/death/null): defines if searching for persons born within range (birth), 
+      persons deceased within the range (death) or persons living within the range (null/empty)
+ - gender (male/female/null): search by gender
+ - place: search for a place name related to the persons
+ - placerelation (birth/death/null): defines relation of place parameter persons, birth place, death place or both (null/empty)
+ - name: search for firstname or surname
+ - firstname: search for firstname
+ - surname: search for surname
+ - archive: search by archive (Herrnhut = 1, Bethlehem = 2, London = 3, 1...)
+ - page: defines which page we are getting (40 persons at a time)
+ - doc_id: search for places related to a specific document ID
+*/
 $app->get('/v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(archive/:archive/?)(page/:page/?)(/)(doc_id/:doc_id/?)(/)', 'getPersonsV2');
-//$app->get('/v2/persons(/)(place/:place/?)(/)(relation/:relation/?)(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(name/:name/?)', 'getPersonsV2');
 
 
-// Transcriptions
+// Get transcription count
 $app->get('/transcriptions/count', 'getTranscriptionsCount');
+
+// Get transcriptions by location (not finished)
 $app->get('/transcriptions/locations', 'getTranscriptionsLocations');
+
+// Search for transcriptions through WordPress API
 $app->get('/transcriptions/wp_search(/)(search/:query/?)(/)(language/:language/?)(/)(country/:country/?)(/)(archive/:archive/?)', 'wpSearchTranscriptions');
+
+// Get transcription (metadata + text from MediaWiki + images from WordPress) by ID
 $app->get('/transcription/:id', 'getTranscriptionsById');
 
 

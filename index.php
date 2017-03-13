@@ -1159,7 +1159,7 @@ function getMovementLocationsV2($yearFrom = null, $yearTo = null, $rangeType = n
 			)
 		));
 	}
-	echo json_encode_is($data, array('sql' => $sql));
+	echo json_encode_is($data);
 }
 
 // v2/locations(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(relation/:relation/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)
@@ -1289,7 +1289,7 @@ function getLocationsV2($yearFrom = null, $yearTo = null, $rangeType = null, $re
 	while ($row = $res->fetch_assoc()) {
 		array_push($data, $row);
 	}
-	echo json_encode_is($data, array('sql' => $sql));
+	echo json_encode_is($data);
 }
 
 // v2/persons(/)(year_range/:num1/:num2/?)(/)(range_type/:rangetype/?)(/)(gender/:gender/?)(/)(place/:place/?)(/)(placerelation/:placerelation/?)(/)(name/:name/?)(/)(firstname/:firstname/?)(/)(surname/:surname/?)(/)(page/:page/?)
@@ -1504,7 +1504,6 @@ function getPersonsV2($yearFrom = null, $yearTo = null, $rangeType = null, $gend
 	}
 
 	echo json_encode_is($data, array(
-		'sql' => $sql,
 		'page' => ''.$page,
 		'total' => $totalRow['total']
 	));
